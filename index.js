@@ -3,8 +3,8 @@ const https = require("https");
 
 (async function main() {
   const extensionIDs = getExtensionIDs();
-  const extensions = await getExtensions();
-  console.log(extensionIDs, extensions);
+  const extensions = await getExtensions(extensionIDs);
+  console.log(extensionIDs, JSON.stringify(extensions));
 })();
 
 /**
@@ -20,25 +20,50 @@ function getExtensionIDs() {
   return extensionIDs;
 }
 
+function createBundlesDirectory() {}
+
 /**
  * Fetches extension bundles + manifests from sourcegraph.com.
  */
-async function getExtensions() {
-  const extensionsQuery = JSON.stringify({
-    query: `query Extensions() {
-                extensionRegistry {
-                    extensions(query: "sourcegraph") {
-                        nodes{
-                            extensionID
-                            url
-                        }
-                        error
-                    }
-                }
-            }`,
+async function getExtensions(extensionIDs) {
+  // Log errored extension downloads
+  const errors = [];
+
+  const extensions = (
+    await Promise.all(
+      extensionIDs.map((id) =>
+        getExtension(id).catch((error) => {
+          error.push({ extensionID: id, error });
+          return null;
+        })
+      )
+    )
+  ).filter(Boolean);
+
+  // Log errors TODO
+
+  return extensions;
+}
+
+/**
+ * Fetches extension metadata from sourcegraph.com, downloads the extension bundle, then returns
+ * a Promise for data necessary to publish the extension.
+ */
+async function getExtension(extensionID) {
+  const extensionQuery = JSON.stringify({
+    query: `query Extension() {
+        extensionRegistry {
+            extension(extensionID: "${extensionID}") {
+             extensionID
+              manifest {
+                bundleURL
+              }
+            }
+          }
+        }`,
   });
 
-  return new Promise((resolve, reject) => {
+  const extensionMetadata = await new Promise((resolve, reject) => {
     const req = https.request(
       {
         hostname: "sourcegraph.com",
@@ -57,7 +82,11 @@ async function getExtensions() {
     );
 
     req.on("error", reject);
-    req.write(extensionsQuery);
+    req.write(extensionQuery);
     req.end();
   });
+
+  // Download extension bundle TODO
+
+  return { extensionID, manifest: extensionMetadata, bundle: "" };
 }
