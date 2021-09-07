@@ -80,6 +80,9 @@ async function getExtension(extensionID) {
         res.on("data", (data) => chunks.push(data));
 
         res.on("end", () => {
+          if (res.statusCode !== 200) {
+            console.log(`statusCode: ${res.statusCode}`);
+          }
           resolve(JSON.parse(Buffer.concat(chunks)));
         });
       }
@@ -104,7 +107,7 @@ async function getExtension(extensionID) {
     throw new Error(`Could not find bundleURL for ${extensionID}`);
   }
 
-  // Download extension bundle
+  // Download extension bundle.
   const bundle = await new Promise((resolve, reject) => {
     const req = https.get(bundleURL, (res) => {
       const chunks = [];
@@ -145,6 +148,10 @@ function createBundlesDirectory(extensions) {
       bundle,
       "utf8"
     );
-    fs.writeFileSync(`${bundlesPath}/${extensionFileName}/package.json`, manifest, "utf8");
+    fs.writeFileSync(
+      `${bundlesPath}/${extensionFileName}/package.json`,
+      manifest,
+      "utf8"
+    );
   }
 }

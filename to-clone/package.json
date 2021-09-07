@@ -1,0 +1,5 @@
+{
+  "scripts": {
+    "publish": "node publish.js"
+  }
+}
