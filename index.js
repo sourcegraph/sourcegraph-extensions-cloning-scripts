@@ -69,23 +69,29 @@ async function getExtension(extensionID) {
 
   const extensionMetadata = await new Promise((resolve, reject) => {
     const req = https.request(
-      {
-        hostname: "sourcegraph.com",
-        path: "/.api/graphql",
-        method: "POST",
-      },
-      (res) => {
-        const chunks = [];
+        {
+            hostname: "sourcegraph.com",
+            path: "/.api/graphql",
+            method: "POST",
+            headers: {
+                "User-agent":
+                    "Mozilla/5.0 (Linux; U; Android 4.1.1; en-gb; Build/KLP) AppleWebKit/534.30 (KHTML, like Gecko) Version/4.0 Safari/534.30",
+            },
+        },
+        (res) => {
+            const chunks = [];
 
-        res.on("data", (data) => chunks.push(data));
+            res.on("data", (data) => chunks.push(data));
 
-        res.on("end", () => {
-          if (res.statusCode !== 200) {
-            console.log(`statusCode: ${res.statusCode}`);
-          }
-          resolve(JSON.parse(Buffer.concat(chunks)));
-        });
-      }
+            res.on("end", () => {
+                if (res.statusCode === 200) {
+                    resolve(JSON.parse(Buffer.concat(chunks)));
+                }
+                console.error(
+                    `Couldn't load ${extensionID}. StatusCode: ${res.statusCode}`
+                );
+            });
+        }
     );
 
     req.on("error", reject);
