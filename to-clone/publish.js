@@ -16,7 +16,7 @@ if (!SRC_ENDPOINT) {
   throw new Error("Must set SRC_ENDPOINT environment variable.");
 }
 
-const { hostname, port } = new URL(SRC_ENDPOINT);
+const sgurl = new URL(SRC_ENDPOINT);
 
 (async function main() {
     const extensionDirectories = determineExtensionDirectories();
@@ -93,11 +93,11 @@ async function publishExtension(extensionDirectory) {
   });
 
   const result = await new Promise((resolve, reject) => {
-    const adapter = (hostname.protocol == 'https' ? https : http);
+    const adapter = (sgurl.protocol == 'https:' ? https : http);
     const req = adapter.request(
       {
-        hostname,
-        port: port || undefined,
+        hostname: sgurl.hostname,
+        port: sgurl.port || undefined,
         path: "/.api/graphql",
         method: "POST",
         headers: {
