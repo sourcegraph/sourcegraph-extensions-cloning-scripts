@@ -86,10 +86,12 @@ async function getExtension(extensionID) {
             res.on("end", () => {
                 if (res.statusCode === 200) {
                     resolve(JSON.parse(Buffer.concat(chunks)));
+                    console.log(`Successfully loaded ${extensionID}.`);
+                } else {
+                    console.error(
+                      `Couldn't load ${extensionID}. StatusCode: ${res.statusCode}`
+                    );
                 }
-                console.error(
-                    `Couldn't load ${extensionID}. StatusCode: ${res.statusCode}`
-                );
             });
         }
     );

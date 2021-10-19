@@ -1,5 +1,7 @@
 const fs = require("fs");
 const https = require("https");
+const http = require("http");
+const path = require("path");
 
 const PUBLISHER = process.env.PUBLISHER;
 if (!PUBLISHER) {
@@ -14,10 +16,10 @@ if (!SRC_ENDPOINT) {
   throw new Error("Must set SRC_ENDPOINT environment variable.");
 }
 
-const { hostname, port } = new URL(SRC_ENDPOINT);
+const sgurl = new URL(SRC_ENDPOINT);
 
 (async function main() {
-  const extensionDirectories = determineExtensionDirectories();
+    const extensionDirectories = determineExtensionDirectories();
   await publishExtensions(extensionDirectories);
 })();
 
@@ -48,13 +50,14 @@ async function publishExtensions(extensionDirectories) {
 }
 
 async function publishExtension(extensionDirectory) {
+  const fullPathToExtensions = path.join(__dirname, extensionDirectory);
   // Read data from extension directory.
   const manifest = await fs.promises.readFile(
-    `./${extensionDirectory}/package.json`,
+    path.join(fullPathToExtensions, `package.json`),
     "utf-8"
   );
   const bundle = await fs.promises.readFile(
-    `./${extensionDirectory}/${extensionDirectory}.js`,
+    path.join(fullPathToExtensions, `${extensionDirectory}.js`),
     "utf-8"
   );
 
@@ -90,10 +93,11 @@ async function publishExtension(extensionDirectory) {
   });
 
   const result = await new Promise((resolve, reject) => {
-    const req = https.request(
+    const adapter = (sgurl.protocol == 'https:' ? https : http);
+    const req = adapter.request(
       {
-        hostname,
-        port: port || undefined,
+        hostname: sgurl.hostname,
+        port: sgurl.port || undefined,
         path: "/.api/graphql",
         method: "POST",
         headers: {
