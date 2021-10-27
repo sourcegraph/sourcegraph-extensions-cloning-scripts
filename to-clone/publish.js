@@ -2,6 +2,7 @@ const fs = require("fs");
 const https = require("https");
 const http = require("http");
 const path = require("path");
+const common = require("./common");
 
 const PUBLISHER = process.env.PUBLISHER;
 if (!PUBLISHER) {
@@ -24,7 +25,7 @@ const sgurl = new URL(SRC_ENDPOINT);
 })();
 
 function determineExtensionDirectories() {
-  const fixedFiles = ["package.json", "publish.js", "README.md"];
+  const fixedFiles = ["package.json", "publish.js", "common.js", "README.md"];
 
   const files = fs.readdirSync(__dirname);
   return files.filter((file) => !fixedFiles.includes(file));
@@ -56,13 +57,15 @@ async function publishExtension(extensionDirectory) {
     path.join(fullPathToExtensions, `package.json`),
     "utf-8"
   );
+  const jsonManifest = JSON.parse(manifest);
+  const version = common.getExtensionVersion(jsonManifest);
   const bundle = await fs.promises.readFile(
-    path.join(fullPathToExtensions, `${extensionDirectory}.js`),
+    path.join(fullPathToExtensions, `${extensionDirectory}.${version}.js`),
     "utf-8"
   );
 
   // Parse manifest to find extension name.
-  const { name } = JSON.parse(manifest);
+  const { name } = jsonManifest;
   const extensionID = `${PUBLISHER}/${name}`;
 
   // Make POST request to publish extension to registry.
@@ -98,7 +101,7 @@ async function publishExtension(extensionDirectory) {
       {
         hostname: sgurl.hostname,
         port: sgurl.port || undefined,
-        path: "/.api/graphql",
+        path: "/.api/graphql?PublishExtension",
         method: "POST",
         headers: {
           Authorization: `token ${SRC_ACCESS_TOKEN}`,
@@ -121,15 +124,15 @@ async function publishExtension(extensionDirectory) {
   });
 
   try {
-    if (typeof JSON.parse(result) === "string") {
-      // Could be an error message (e.g. "Private mode requires authentication")
-      console.log(result);
+    if (typeof result == 'object' && 'errors' in result && result['errors'].length > 0) {
+      console.log(`Unable to publish ${extensionID} from directory ${extensionDirectory}`);
+      result['errors'].forEach(err => console.log(err.message));
+    } else {
+      console.log(
+        `Published extension ${extensionID} from directory: ${extensionDirectory}`
+      );
     }
-  } catch {
-    // noop
+  } catch (e) {
+    console.log(e.stack);
   }
-
-  console.log(
-    `Published extension ${extensionID} from directory: ${extensionDirectory}`
-  );
 }
