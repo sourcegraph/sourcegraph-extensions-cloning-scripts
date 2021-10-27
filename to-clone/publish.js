@@ -101,7 +101,7 @@ async function publishExtension(extensionDirectory) {
       {
         hostname: sgurl.hostname,
         port: sgurl.port || undefined,
-        path: "/.api/graphql",
+        path: "/.api/graphql?PublishExtension",
         method: "POST",
         headers: {
           Authorization: `token ${SRC_ACCESS_TOKEN}`,
@@ -124,15 +124,15 @@ async function publishExtension(extensionDirectory) {
   });
 
   try {
-    if (typeof JSON.parse(result) === "string") {
-      // Could be an error message (e.g. "Private mode requires authentication")
-      console.log(result);
+    if (typeof result == 'object' && 'errors' in result && result['errors'].length > 0) {
+      console.log(`Unable to publish ${extensionID} from directory ${extensionDirectory}`);
+      result['errors'].forEach(err => console.log(err.message));
+    } else {
+      console.log(
+        `Published extension ${extensionID} from directory: ${extensionDirectory}`
+      );
     }
-  } catch {
-    // noop
+  } catch (e) {
+    console.log(e.stack);
   }
-
-  console.log(
-    `Published extension ${extensionID} from directory: ${extensionDirectory}`
-  );
 }
