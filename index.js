@@ -1,5 +1,6 @@
 const fs = require("fs");
 const https = require("https");
+const common = require("./common");
 
 (async function main() {
   const extensionIDs = getExtensionIDs();
@@ -144,15 +145,21 @@ function createBundlesDirectory(extensions) {
   // Clone customer instructions and publish script.
   fs.copyFileSync("./to-clone/instructions.md", `${bundlesPath}/README.md`);
   fs.copyFileSync("./to-clone/publish.js", `${bundlesPath}/publish.js`);
+  fs.copyFileSync("./common.js", `${bundlesPath}/common.js`);
 
   // Create extension directories (to be used by publish script).
   for (const { extensionID, manifest, bundle } of extensions) {
     const extensionFileName = extensionID.replace("/", "-");
 
+    // get the version
+    // assumption: URL is in format:
+    // "url": "https://sourcegraph.com/-/static/extension/13212-sourcegraph-verilog.js?cf8s0z1vs41c--sourcegraph-verilog"
+    const version = common.getExtensionVersion(JSON.parse(manifest));
+
     fs.mkdirSync(`${bundlesPath}/${extensionFileName}`);
 
     fs.writeFileSync(
-      `${bundlesPath}/${extensionFileName}/${extensionFileName}.js`,
+      `${bundlesPath}/${extensionFileName}/${extensionFileName}.${version}.js`,
       bundle,
       "utf8"
     );
